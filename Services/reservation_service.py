@@ -24,6 +24,21 @@ class ReservationService:
         
         self.res_repo.enregistrer(date, id_creneau, id_groupe, type_evenement)
 
+    def reservation_multiple(self, date, id_groupe, type_evenement, liste_creneaux):
+        # creneau = self.creneau_repo.trouver_par_id(id_creneau)
+
+        # if not creneau:
+        #     raise Exception("Créneau introuvable")
+        
+        groupe = self.groupe_repo.trouver_par_id(id_groupe)
+        if not groupe:
+            raise Exception("Groupe introuvable")
+        
+        if self.creneau_repo.verifier_creneau_disponible(date):
+            raise Exception("Ce créneau est déjà réservé.")
+        
+        self.res_repo.reserver_plusieurs_creneaux(date, id_groupe, type_evenement, liste_creneaux)
+
     def lister_reservations(self):
         return self.res_repo.afficher_reservations()
     

@@ -68,17 +68,35 @@ class CreneauRpository:
         cursor = conn.cursor()
 
         try:
-            cursor.execute(
-                """
-                SELECT c.id, c.heure_debut, c.heure_fin
-                FROM creneaux c
-                INNER JOIN reservations r
-                    ON c.id = r.id_creneau
-                    AND r.statut = 'Valide'
+            # cursor.execute(
+            #     """
+            #     # SELECT c.id, c.heure_debut, c.heure_fin
+            #     # FROM creneaux c
+            #     # INNER JOIN reservations r
+            #     #     ON c.id = r.id_creneau
+            #     #     AND r.statut = 'Valide'
+            #     # WHERE r.date = %s
+
+            #     """
+            #     (date_choisie,)
+            # )
+
+            query = """
+                SELECT 
+                    c.id,
+                    c.heure_debut,
+                    c.heure_fin
+                FROM reservations r
+                JOIN reservation_creneaux rc 
+                    ON r.id = rc.id_reservation
+                JOIN creneaux c 
+                    ON c.id = rc.id_creneau
                 WHERE r.date = %s
-                """, 
-                (date_choisie,)
-            )
+                AND r.statut = 'Valide'
+                ORDER BY c.heure_debut
+                """
+            cursor.execute(query, (date_choisie,))
+
             result = cursor.fetchone()
 
             return result is not None
@@ -105,6 +123,7 @@ class CreneauRpository:
                 """
             )
 
+
             return cursor.fetchall()
         
         except ValueError as e:
@@ -118,14 +137,29 @@ class CreneauRpository:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
         try:
+            # query = """
+            #     SELECT c.id, c.heure_debut, c.heure_fin
+            #     FROM creneaux c
+            #     LEFT JOIN reservations r
+            #         ON c.id = r.id_creneau
+            #         AND r.date = %s
+            #         AND r.statut = 'Valide'
+            #     WHERE r.id IS NULL
+            #     """
+            
             query = """
                 SELECT c.id, c.heure_debut, c.heure_fin
                 FROM creneaux c
-                LEFT JOIN reservations r
-                    ON c.id = r.id_creneau
-                    AND r.date = %s
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM reservations r
+                    JOIN reservation_creneaux rc 
+                        ON r.id = rc.id_reservation
+                    WHERE r.date = %s
                     AND r.statut = 'Valide'
-                WHERE r.id IS NULL
+                    AND rc.id_creneau = c.id
+                )
+                ORDER BY c.heure_debut
                 """
             cursor.execute(query, (date,))
 
@@ -153,26 +187,46 @@ class CreneauRpository:
             cursor.close()
             conn.close()
 
-    def afficher_planing(self):
+    def afficher_planing(self, date):
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
 
         try:
-            cursor.execute(
-                """
-                SELECT 
-                    c.id,
-                    c.heure_debut,
-                    c.heure_fin,
-                    g.nom AS nom_groupe
-                FROM creneaux c
-                LEFT JOIN reservations r 
-                    ON c.id = r.id_creneau 
-                    AND r.statut = 'Valide'
-                LEFT JOIN groupes g 
-                    ON r.id_groupe = g.id
-                """
-            )
+            # cursor.execute(
+            #     """
+            #     SELECT 
+            #         c.id,
+            #         c.heure_debut,
+            #         c.heure_fin,
+            #         g.nom AS nom_groupe
+            #     FROM creneaux c
+            #     LEFT JOIN reservations r 
+            #         ON c.id = r.id_creneau 
+            #         AND r.statut = 'Valide'
+            #     LEFT JOIN groupes g 
+            #         ON r.id_groupe = g.id
+            #     """
+            # )
+
+            query = """
+            SELECT 
+                c.heure_debut,
+                c.heure_fin,
+                g.nom AS nom_groupe,
+                r.type_evenement,
+                r.date
+            FROM creneaux c
+            LEFT JOIN reservation_creneaux rc 
+                ON c.id = rc.id_creneau
+            LEFT JOIN reservations r 
+                ON r.id = rc.id_reservation
+                AND r.date = %s
+                AND r.statut = 'Valide'
+            LEFT JOIN groupes g 
+                ON g.id = r.id_groupe
+            ORDER BY c.heure_debut
+            """
+            cursor.execute(query, (date,))
             return cursor.fetchall()
 
         except ValueError as e:
