@@ -1,0 +1,8 @@
+Models/__pycache__/
+config/__pycache__
+config/database.py
+*.pyc
+.env/
+.venv/
+env/
+.vscode
