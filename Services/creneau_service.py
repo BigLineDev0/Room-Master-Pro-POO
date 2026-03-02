@@ -17,8 +17,8 @@ class CreneauService:
     def lister_creneau_disponible(self):
         return self.creneau_repo.creneau_disponibles()
     
-    def planing(sefl):
-        return sefl.creneau_repo.afficher_planing()
+    def planing(sefl, date):
+        return sefl.creneau_repo.afficher_planing(date)
     
     def obtenir_disponibles_par_date(self, date_choisie):
         if date_choisie < date.today():

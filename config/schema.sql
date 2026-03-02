@@ -25,15 +25,22 @@ CREATE TABLE creneaux (
 CREATE TABLE reservations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     date DATE,
-    id_creneau INT NOT NULL,
     id_groupe INT NOT NULL,
     type_evenement VARCHAR(100),
     date_creation DATETIME DEFAULT CURRENT_TIMESTAMP,
     statut ENUM('Valide','Annule') DEFAULT 'Valide',
-    UNIQUE (date, id_creneau),
-    FOREIGN KEY (id_creneau) REFERENCES creneaux(id),
     FOREIGN KEY (id_groupe) REFERENCES groupes(id)
 );
+
+CREATE TABLE reservation_creneaux (
+    id_reservation INT NOT NULL,
+    id_creneau INT NOT NULL,
+    PRIMARY KEY (id_reservation, id_creneau),
+    FOREIGN KEY (id_reservation) REFERENCES reservations(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_creneau) REFERENCES creneaux(id)
+);
+
+
 -- ON GERE JUSTE LE PLANNING JOURNALIER UNE SEULE DATE
 -- RESERVER POUR UNE DATE DONNEE
 
@@ -57,3 +64,49 @@ INNER JOIN groupes g ON g.id = r.id_groupe
 WHERE r.statut = 'Valide'
 ORDER BY c.heure_debut;
 
+SELECT 
+    c.heure_debut,
+    c.heure_fin,
+    g.nom AS groupe,
+    g.responsable
+FROM reservations r
+INNER JOIN reservation_creneaux rc ON r.id = rc.id_reservation
+INNER JOIN groupes g ON g.id = r.id_groupe
+INNER JOIN creneaux c ON c.id = rc.id_creneau
+WHERE r.date = '2026-03-14'
+AND r.statut = 'Valide'
+ORDER BY c.heure_debut;
+
+
+SELECT 
+    c.heure_debut,
+    c.heure_fin,
+    g.nom AS nom_groupe,
+    r.type_evenement
+FROM creneaux c
+LEFT JOIN reservation_creneaux rc 
+    ON c.id = rc.id_creneau
+LEFT JOIN reservations r 
+    ON r.id = rc.id_reservation
+    AND r.date = '2026-03-14'
+    AND r.statut = 'Valide'
+LEFT JOIN groupes g 
+    ON g.id = r.id_groupe
+ORDER BY c.heure_debut;
+
+
+SELECT 
+    r.id,
+    r.date,
+    r.type_evenement,
+    g.nom AS nom_groupe,
+    c.heure_debut AS heure_debut,
+    c.heure_fin AS heure_fin
+FROM creneaux c
+JOIN reservation_creneaux rc 
+    ON c.id = rc.id_creneau
+JOIN reservations r
+    ON r.id = rc.id_reservation
+JOIN groupes g 
+    ON r.id_groupe = g.id
+ORDER BY r.date
